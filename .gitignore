@@ -1,0 +1,15 @@
+node_modules/
+dist/
+.env
+*.log
+
+backend/node_modules/
+backend/.env
+backend/backend.log
+backend/simple-chat/node_modules/
+
+tcfs-frontend/node_modules/
+tcfs-frontend/dist/
+
+.DS_Store
+Thumbs.db

@@ -1,0 +1,35 @@
+/* App-specific styles */
+#root {
+  width: 100%;
+  min-height: 100vh;
+}
+
+/* Remove default centering for dashboard layouts */
+body {
+  margin: 0;
+  padding: 0;
+}
+
+.chat-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #4b5b7f #24314a;
+}
+
+.chat-scrollbar::-webkit-scrollbar {
+  width: 12px;
+}
+
+.chat-scrollbar::-webkit-scrollbar-track {
+  background: #24314a;
+  border-radius: 999px;
+}
+
+.chat-scrollbar::-webkit-scrollbar-thumb {
+  background: #4b5b7f;
+  border-radius: 999px;
+  border: 2px solid #24314a;
+}
+
+.chat-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #6478a3;
+}

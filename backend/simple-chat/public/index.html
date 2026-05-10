@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Simple Chat (Alice & Bob)</title>
+    <style>
+      body { font-family: system-ui, Arial, sans-serif; margin: 0; background: #111; color: #eee; }
+      header { padding: 12px 16px; background: #1e293b; }
+      main { display: flex; flex-direction: column; gap: 8px; max-width: 720px; margin: 20px auto; padding: 0 16px; }
+      .login { display: flex; gap: 8px; }
+      button { background: #2563eb; color: white; border: 0; padding: 8px 12px; border-radius: 6px; cursor: pointer; }
+      button:disabled { opacity: 0.5; cursor: not-allowed; }
+      #status { font-size: 12px; color: #9ca3af; }
+      #messages { border: 1px solid #2d3748; min-height: 300px; padding: 12px; border-radius: 8px; background: #0b1220; overflow-y: auto; }
+      .msg { margin: 6px 0; }
+      .me { color: #60a5fa; }
+      .other { color: #fca5a5; }
+      .input { display: flex; gap: 8px; }
+      input[type="text"] { flex: 1; padding: 8px; border-radius: 6px; border: 1px solid #374151; background: #0b1220; color: #eee; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div>Simple Chat • Default room for Alice & Bob</div>
+    </header>
+    <main>
+      <div class="login">
+        <button id="login-alice">Login as Alice</button>
+        <button id="login-bob">Login as Bob</button>
+        <span id="status">(not connected)</span>
+      </div>
+      <div id="messages"></div>
+      <div class="input">
+        <input id="text" type="text" placeholder="Type a message..." disabled />
+        <button id="send" disabled>Send</button>
+      </div>
+    </main>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      const $status = document.getElementById('status');
+      const $messages = document.getElementById('messages');
+      const $text = document.getElementById('text');
+      const $send = document.getElementById('send');
+      const $alice = document.getElementById('login-alice');
+      const $bob = document.getElementById('login-bob');
+
+      let socket = null;
+      let user = null;
+      let roomId = null;
+
+      function addMessage({ username, displayName, text, createdAt, userId }) {
+        const el = document.createElement('div');
+        el.className = 'msg ' + (user && user._id === userId ? 'me' : 'other');
+        const ts = new Date(createdAt).toLocaleTimeString();
+        el.textContent = '[' + ts + '] ' + displayName + ': ' + text;
+        $messages.appendChild(el);
+        $messages.scrollTop = $messages.scrollHeight;
+      }
+
+      async function loginAs(username) {
+        const res = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username })
+        });
+        if (!res.ok) {
+          alert('Login failed');
+          return;
+        }
+        const data = await res.json();
+        user = data.user;
+        roomId = data.roomId;
+        $status.textContent = 'Logged in as ' + user.displayName + ' • room ' + roomId;
+        $text.disabled = false; $send.disabled = false;
+
+        if (!socket) {
+          socket = io();
+          socket.on('connect', () => {
+            $status.textContent = 'Connected • ' + user.displayName;
+          });
+          socket.on('history', (list) => {
+            $messages.innerHTML = '';
+            list.forEach(addMessage);
+          });
+          socket.on('message', (msg) => addMessage(msg));
+        }
+        socket.emit('join', { userId: user._id });
+        const hist = await fetch('/api/messages').then(r => r.json()).catch(() => null);
+        if (hist && Array.isArray(hist.messages)) {
+          $messages.innerHTML = '';
+          hist.messages.forEach(addMessage);
+        }
+      }
+
+      $alice.addEventListener('click', () => loginAs('alice'));
+      $bob.addEventListener('click', () => loginAs('bob'));
+      $send.addEventListener('click', () => {
+        const text = $text.value.trim();
+        if (!text || !socket || !user) return;
+        socket.emit('message', { userId: user._id, text });
+        $text.value = '';
+      });
+      $text.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') $send.click();
+      });
+    </script>
+  </body>
+  </html>
+
