@@ -34,7 +34,8 @@ const corsOptions = {
       'http://localhost:10000',
       process.env.CLIENT_URL,
       process.env.FRONTEND_URL,
-      'https://tcfs.vercel.app'
+      'https://tcfs.vercel.app',
+      'https://www.tcfs.vercel.app'
     ].filter(Boolean);
 
     if (!origin || allowedOrigins.includes(origin)) {
