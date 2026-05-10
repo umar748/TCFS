@@ -32,7 +32,9 @@ const corsOptions = {
       'http://localhost:3000',
       'http://localhost:5173',
       'http://localhost:10000',
-      process.env.CLIENT_URL
+      process.env.CLIENT_URL,
+      process.env.FRONTEND_URL,
+      'https://tcfs.vercel.app'
     ].filter(Boolean);
 
     if (!origin || allowedOrigins.includes(origin)) {
