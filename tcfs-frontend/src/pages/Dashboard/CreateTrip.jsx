@@ -237,7 +237,8 @@ export default function CreateTrip() {
       alert(isEditMode ? 'Trip updated successfully!' : 'Trip created successfully!');
       navigate('/dashboard/trips');
     } catch (e) {
-      setError('Network error. Please try again.');
+      console.error('Trip creation error:', e);
+      setError(e?.message || 'Network error. Please try again.');
     } finally {
       setLoading(false);
     }
