@@ -8,7 +8,6 @@ import {
   FaMapMarkerAlt,
   FaSlidersH,
   FaStar,
-  FaTimes,
 } from 'react-icons/fa';
 import { getToken, getUser } from '../../services/auth';
 
@@ -440,12 +439,12 @@ export default function Matches() {
                       <h2 className="truncate text-[1.15rem] font-extrabold tracking-tight text-white">
                         {match.name} <span className="text-[1rem] font-medium text-slate-400">{match.age}</span>
                       </h2>
-                      <p className="mt-1 flex items-center gap-1.5 text-[13px] text-slate-400">
-                        <FaMapMarkerAlt className="text-xs" />
-                        {match.location}
-                      </p>
-
-                      <p className="mt-1.5 text-[12px] text-slate-400">Last active: {match.responseTime}</p>
+                      {match.location && (
+                        <p className="mt-1 flex items-center gap-1.5 text-[13px] text-slate-400">
+                          <FaMapMarkerAlt className="text-xs" />
+                          {match.location}
+                        </p>
+                      )}
                     </div>
                   </div>
 
@@ -492,12 +491,6 @@ export default function Matches() {
                   </div>
 
                   <div className="flex items-center gap-3 pt-1">
-                    <button
-                      type="button"
-                      className="flex h-[2.6rem] w-[2.8rem] items-center justify-center rounded-xl border-2 border-red-400 bg-transparent text-red-400 transition hover:bg-red-500/10"
-                    >
-                      <FaTimes />
-                    </button>
                     <button
                       type="button"
                       onClick={() => handleConnectRequest(match)}
