@@ -55,6 +55,11 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: '',
   },
+  budget: {
+    type: Number,
+    default: 0,
+    description: 'User\'s travel budget in PKR'
+  },
   role: {
     type: String,
     enum: ['user', 'admin'],
@@ -104,7 +109,8 @@ userSchema.pre('save', async function() {
   if (this.gender) score += 10;
   if (this.interests && this.interests.length > 0) score += 10;
   if (this.travelStyle) score += 10;
-  if (this.location) score += 20;
+  if (this.location) score += 10;
+  if (this.budget && this.budget > 0) score += 10;
   this.profileCompletion = score;
 });
 

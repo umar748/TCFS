@@ -2,6 +2,7 @@ import User from '../models/User.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import nodemailer from 'nodemailer';
+import { sendTripMatchNotifications } from '../services/matchingService.js';
 
 const nameRegex = /^[A-Za-z]+(?: [A-Za-z]+)*$/;
 

@@ -1,9 +1,10 @@
 import User from '../models/User.js';
+import { sendTripMatchNotifications } from '../services/matchingService.js';
 
 export const updateProfile = async (req, res) => {
   try {
     const userId = req.user.userId;
-    const { name, bio, age, gender, interests, travelStyle, location, profilePicture } = req.body;
+    const { name, bio, age, gender, interests, travelStyle, location, profilePicture, budget } = req.body;
 
     const user = await User.findById(userId);
     if (!user) {
@@ -18,8 +19,13 @@ export const updateProfile = async (req, res) => {
     if (travelStyle !== undefined) user.travelStyle = travelStyle;
     if (location !== undefined) user.location = location;
     if (profilePicture !== undefined) user.profilePicture = profilePicture;
+    if (budget !== undefined) user.budget = budget;
 
     await user.save();
+
+    // Trigger trip matching notifications when profile is completed
+    const io = req.app.get('io');
+    await sendTripMatchNotifications(userId, io);
 
     res.json({ 
       success: true, 
@@ -35,6 +41,7 @@ export const updateProfile = async (req, res) => {
         interests: user.interests,
         travelStyle: user.travelStyle,
         location: user.location,
+        budget: user.budget,
         profileCompletion: user.profileCompletion
       }
     });
