@@ -178,13 +178,25 @@ export default function Matches() {
         const token = getToken();
         const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
+        console.log('🔍 Loading matches with token:', token ? '✓ Present' : '✗ Missing');
+
         const [usersRes, tripsRes] = await Promise.all([
           fetch('/api/users/search', { headers }),
           fetch('/api/trips/discover', { headers }),
         ]);
 
+        console.log('📊 API Responses:', {
+          users: { status: usersRes.status, ok: usersRes.ok },
+          trips: { status: tripsRes.status, ok: tripsRes.ok }
+        });
+
         const usersData = await usersRes.json().catch(() => null);
         const tripsData = await tripsRes.json().catch(() => null);
+
+        console.log('📦 Parsed data:', {
+          usersCount: usersData?.users?.length || 0,
+          tripsCount: tripsData?.items?.length || 0
+        });
 
         if (!usersRes.ok || !usersData?.success) {
           throw new Error(usersData?.message || `Failed to load users (${usersRes.status})`);
@@ -209,6 +221,11 @@ export default function Matches() {
         }
       } catch (error) {
         if (!cancelled) {
+          console.error('❌ Matches Load Error:', {
+            message: error.message,
+            stack: error.stack,
+            usersRes: usersRes ? { status: usersRes.status, ok: usersRes.ok } : 'undefined'
+          });
           setMatches([]);
           setLoadError(error.message || 'Failed to load database matches');
         }
