@@ -497,41 +497,13 @@ export default function Matches() {
                     <div className="absolute right-0 top-0 h-24 w-24 rounded-full bg-emerald-200 blur-3xl" />
                   </div>
 
-                  <div className="relative flex items-start justify-between gap-4">
-                    <div className="space-y-2">
-                      {match.active ? (
-                        <span className="inline-flex items-center gap-2 rounded-full bg-emerald-500/18 px-3 py-1 text-[11px] font-bold text-emerald-100 ring-1 ring-emerald-100/15">
-                          <span className="h-2 w-2 rounded-full bg-emerald-300" />
-                          {match.active}
-                        </span>
-                      ) : null}
-                      <p className="text-[12px] font-extrabold uppercase tracking-wide text-white/95">Match Score</p>
-                    </div>
-
-                    <div className="relative flex h-[3.25rem] w-[3.25rem] items-center justify-center rounded-full bg-white text-3xl font-black text-[#2f6fe8] shadow-[0_10px_28px_rgba(14,23,43,0.28)]">
-                      <span className="text-[1.35rem] leading-none">{match.match}</span>
-                      <span className="self-start pt-2 text-[11px]">%</span>
-                    </div>
-                  </div>
-
-                  <div className="relative mt-3 flex items-center gap-4">
-                    <div className="h-2 flex-1 rounded-full bg-white/25">
-                      <div
-                        className="h-2 rounded-full bg-white"
-                        style={{ width: `${match.match}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="relative mt-3 flex flex-wrap gap-2">
-                    {match.headerTags.map((tag) => (
-                      <span
-                        key={tag}
-                        className="rounded-full bg-white/18 px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-white"
-                      >
-                        {tag}
+                  <div className="relative flex items-center justify-between gap-4">
+                    {match.active ? (
+                      <span className="inline-flex items-center gap-2 rounded-full bg-emerald-500/18 px-3 py-1 text-[11px] font-bold text-emerald-100 ring-1 ring-emerald-100/15">
+                        <span className="h-2 w-2 rounded-full bg-emerald-300" />
+                        {match.active}
                       </span>
-                    ))}
+                    ) : null}
                   </div>
                 </div>
 
@@ -565,39 +537,8 @@ export default function Matches() {
                         {match.location}
                       </p>
 
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        {match.statusBadges.length ? match.statusBadges.slice(0, 2).map((badge) => (
-                          <span
-                            key={badge}
-                            className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${
-                              badge === 'Super Host'
-                                ? 'border border-yellow-400/40 bg-yellow-400/10 text-yellow-300'
-                                : 'border border-emerald-400/30 bg-emerald-400/10 text-emerald-300'
-                            }`}
-                          >
-                            {badge === 'Super Host' ? '* ' : 'o '}
-                            {badge}
-                          </span>
-                        )) : (
-                          <span className="rounded-full border border-slate-500/40 bg-slate-700/40 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-slate-300">
-                            Member
-                          </span>
-                        )}
-                      </div>
-
                       <p className="mt-1.5 text-[12px] text-slate-400">Last active: {match.responseTime}</p>
                     </div>
-                  </div>
-
-                  <div className="grid grid-cols-4 gap-2 rounded-[1rem] bg-[#11192f] px-3 py-3 text-center">
-                    {match.stats.slice(0, 4).map((stat) => (
-                      <div key={stat.label}>
-                        <div className="text-[1.35rem] font-black leading-none text-emerald-400">{stat.value}</div>
-                        <div className="mt-1 text-[9px] font-medium uppercase tracking-[0.12em] text-slate-400">
-                          {stat.label}
-                        </div>
-                      </div>
-                    ))}
                   </div>
 
                   <div>

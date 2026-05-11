@@ -78,8 +78,30 @@ function getWebsiteKnowledgeResponse(message, user) {
     return 'The dashboard acts as the user hub for discovering trips, checking matches, reviewing requests, messaging companions, and opening settings or profile tools.';
   }
 
-  if (msg.includes('find companion') || msg.includes('find a companion') || msg.includes('travel buddy') || msg.includes('buddy')) {
-    return `I can help find a companion. Tell me the destination and any preferences. For example: "Find a companion for Lahore" or "Find a verified travel buddy near ${userLocation}."`;
+  if (msg.includes('find companion') || msg.includes('find a companion') || msg.includes('travel buddy') || msg.includes('buddy') || msg.includes('how can i find') || msg.includes('how to find')) {
+    return `Here's how to find a travel companion on TCFS:
+
+1. **Create Account**: Sign up with your email and password, or use Google login.
+
+2. **Complete Your Profile**: Go to Profile settings and fill in:
+   - Personal details (age, gender, location)
+   - Travel interests (hiking, beaches, food, adventure, etc.)
+   - Travel style (adventure, cultural, relaxation, etc.)
+   - Budget preferences
+   - Bio and profile picture
+
+3. **Use Search Page**: Click "Search" in the sidebar and:
+   - Select "Companions" tab
+   - Add filters: destination, age range, gender, interests
+   - Click "Search" to find matching travelers
+
+4. **Check Matches**: Visit the "Matches" page to see AI-recommended companions based on your profile.
+
+5. **Connect**: Click on a companion's profile to view details, then send a match request or start chatting.
+
+6. **Notifications**: You'll get notifications when someone wants to connect or when trips match your interests.
+
+Tip: A complete profile (100% completion) gets better matches!`;
   }
 
   return null;
