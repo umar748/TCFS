@@ -111,7 +111,13 @@ function hasInterestOverlap(currentUser, candidate) {
   return candidateInterests.some((interest) => currentSet.has(interest));
 }
 
-function mapUserToMatch(user, index, currentUser, tripCountMap) {
+function formatDate(dateString) {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function mapUserToMatch(user, index, currentUser, tripCountMap, userTripsMap) {
   const { score, overlapCount } = computeMatchScore(currentUser, user);
   const verification = user.verificationStatus === 'Verified';
   const interests = Array.isArray(user.interests) && user.interests.length
@@ -125,6 +131,7 @@ function mapUserToMatch(user, index, currentUser, tripCountMap) {
   const countryEstimate = clamp(Math.max(1, tripCount + Math.ceil(interests.length / 2)), 1, 25);
   const rating = (4.3 + score / 100).toFixed(1);
   const responseRate = `${clamp(profileCompletion || 78, 78, 99)}%`;
+  const upcomingTrips = userTripsMap.get(String(user._id || user.id)) || [];
 
   if (verification) statusBadges.push('Verified');
   if (profileCompletion >= 80) statusBadges.push('Super Host');
@@ -152,6 +159,7 @@ function mapUserToMatch(user, index, currentUser, tripCountMap) {
     avatarTone: avatarTones[index % avatarTones.length],
     profilePicture: user.profilePicture || '',
     createdAt: user.createdAt || '',
+    upcomingTrips,
   };
 }
 
@@ -203,17 +211,29 @@ export default function Matches() {
         }
 
         const tripCountMap = new Map();
+        const userTripsMap = new Map();
         (tripsData?.items || []).forEach((trip) => {
           const creatorId = trip?.creator_id?._id || trip?.creator_id?.id || trip?.creator_id;
           if (!creatorId) return;
-          tripCountMap.set(String(creatorId), (tripCountMap.get(String(creatorId)) || 0) + 1);
+          const userId = String(creatorId);
+          tripCountMap.set(userId, (tripCountMap.get(userId) || 0) + 1);
+          
+          // Store trip details
+          const trips = userTripsMap.get(userId) || [];
+          trips.push({
+            destination: trip.destination,
+            start_date: trip.start_date,
+            end_date: trip.end_date,
+          });
+          userTripsMap.set(userId, trips);
         });
 
         const currentUserId = String(currentUser?.id || currentUser?._id || '');
         const databaseMatches = (usersData.users || [])
           .filter((user) => String(user._id || user.id || '') !== currentUserId)
           .filter((user) => hasInterestOverlap(currentUser, user))
-          .map((user, index) => mapUserToMatch(user, index, currentUser, tripCountMap))
+          .filter((user) => (userTripsMap.get(String(user._id || user.id)) || []).length > 0)
+          .map((user, index) => mapUserToMatch(user, index, currentUser, tripCountMap, userTripsMap))
           .sort((a, b) => b.match - a.match);
 
         if (!cancelled) {
@@ -454,6 +474,22 @@ export default function Matches() {
                       Read more
                     </button>
                   </div>
+
+                  {match.upcomingTrips && match.upcomingTrips.length > 0 && (
+                    <div className="rounded-lg border border-cyan-400/20 bg-cyan-400/5 p-3">
+                      <div className="mb-2 text-[11px] font-bold uppercase tracking-[0.16em] text-cyan-300">Upcoming Trips</div>
+                      <div className="space-y-2">
+                        {match.upcomingTrips.slice(0, 2).map((trip, idx) => (
+                          <div key={idx} className="text-[12px] text-slate-300">
+                            <p className="font-semibold text-cyan-200">{trip.destination}</p>
+                            <p className="text-[11px] text-slate-400">
+                              {formatDate(trip.start_date)} - {formatDate(trip.end_date)}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   <div>
                     <div className="mb-2 flex items-center justify-between">
