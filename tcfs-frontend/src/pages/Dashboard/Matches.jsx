@@ -12,109 +12,6 @@ import {
 } from 'react-icons/fa';
 import { getToken, getUser } from '../../services/auth';
 
-const fallbackMatches = [
-  {
-    id: 'fallback-1',
-    name: 'Sarah Jenkins',
-    age: 28,
-    match: 95,
-    active: 'Active now',
-    location: 'Paris, France',
-    description:
-      'Adventure seeker and culture enthusiast. Love exploring hidden gems and trying local cuisine. Looking for travel buddies who enjoy spontaneous city walks and memorable food stops.',
-    statusBadges: ['Verified', 'Strong Profile'],
-    headerTags: ['Interests', 'Budget', 'Style'],
-    stats: [
-      { label: 'Trips', value: '28' },
-      { label: 'Interests', value: '4' },
-      { label: 'Profile', value: '98%' },
-      { label: 'Verified', value: 'Yes' },
-    ],
-    interests: ['Photography', 'Food Tours', 'Art', 'Hiking'],
-    languages: ['English', 'French', 'Spanish'],
-    mutual: 3,
-    responseTime: '5 minutes ago',
-    avatarTone: 'from-violet-500 to-indigo-500',
-    profilePicture: '',
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'fallback-2',
-    name: 'Mike Ross',
-    age: 32,
-    match: 88,
-    active: null,
-    location: 'New York, USA',
-    description:
-      'Outdoor enthusiast and adrenaline junkie. Passionate about hiking, rock climbing, and exploring off-the-beaten-path destinations with people who can match the pace.',
-    statusBadges: ['Verified'],
-    headerTags: ['Budget', 'Style'],
-    stats: [
-      { label: 'Trips', value: '18' },
-      { label: 'Interests', value: '4' },
-      { label: 'Profile', value: '95%' },
-      { label: 'Verified', value: 'Yes' },
-    ],
-    interests: ['Hiking', 'Adventure', 'Climbing', 'Camping'],
-    languages: ['English', 'Spanish'],
-    mutual: 2,
-    responseTime: '2 hours ago',
-    avatarTone: 'from-blue-500 to-indigo-500',
-    profilePicture: '',
-    createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: 'fallback-3',
-    name: 'Lina Chen',
-    age: 27,
-    match: 84,
-    active: 'Online today',
-    location: 'Singapore',
-    description:
-      'Planner by habit, explorer by instinct. I enjoy clean itineraries, cafe hopping, museums, and finding the best sunrise viewpoints during every trip.',
-    statusBadges: ['Verified'],
-    headerTags: ['Interests', 'Style'],
-    stats: [
-      { label: 'Trips', value: '21' },
-      { label: 'Interests', value: '4' },
-      { label: 'Profile', value: '96%' },
-      { label: 'Verified', value: 'Yes' },
-    ],
-    interests: ['Museums', 'Coffee', 'City Walks', 'Photography'],
-    languages: ['English', 'Mandarin'],
-    mutual: 4,
-    responseTime: '18 minutes ago',
-    avatarTone: 'from-cyan-500 to-blue-500',
-    profilePicture: '',
-    createdAt: new Date(Date.now() - 18 * 60 * 1000).toISOString(),
-  },
-  {
-    id: 'fallback-4',
-    name: 'Ava Martinez',
-    age: 30,
-    match: 81,
-    active: null,
-    location: 'Barcelona, Spain',
-    description:
-      'Slow-travel fan who prefers meaningful stays, beach mornings, design districts, and conversations with locals over rushed checklists.',
-    statusBadges: ['Verified'],
-    headerTags: ['Budget', 'Style'],
-    stats: [
-      { label: 'Trips', value: '16' },
-      { label: 'Interests', value: '4' },
-      { label: 'Profile', value: '92%' },
-      { label: 'Verified', value: 'Yes' },
-    ],
-    interests: ['Beach', 'Design', 'Food', 'Wellness'],
-    languages: ['Spanish', 'English'],
-    mutual: 1,
-    responseTime: '1 day ago',
-    avatarTone: 'from-rose-500 to-orange-400',
-    profilePicture: '',
-    createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-  },
-];
-
 const filters = ['All Matches', 'High Score (90%+)', 'Recent', 'Verified Only'];
 const sortOptions = ['Match Score', 'Most Recent', 'Most Trips'];
 const avatarTones = [
@@ -261,7 +158,7 @@ function mapUserToMatch(user, index, currentUser, tripCountMap) {
 
 export default function Matches() {
   const navigate = useNavigate();
-  const [matches, setMatches] = useState(fallbackMatches);
+  const [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [requestingId, setRequestingId] = useState('');
@@ -308,18 +205,12 @@ export default function Matches() {
           .map((user, index) => mapUserToMatch(user, index, currentUser, tripCountMap))
           .sort((a, b) => b.match - a.match);
 
-        const existingIds = new Set(databaseMatches.map((item) => String(item.id)));
-        const mergedMatches = [
-          ...databaseMatches,
-          ...fallbackMatches.filter((item) => !existingIds.has(String(item.id))),
-        ];
-
         if (!cancelled) {
-          setMatches(mergedMatches);
+          setMatches(databaseMatches);
         }
       } catch (error) {
         if (!cancelled) {
-          setMatches(fallbackMatches);
+          setMatches([]);
           setLoadError(error.message || 'Failed to load database matches');
         }
       } finally {
@@ -413,7 +304,7 @@ export default function Matches() {
               </div>
               {loadError ? (
                 <p className="text-sm text-amber-300">
-                  Showing fallback cards while database matches are unavailable: {loadError}
+                  Unable to load database matches: {loadError}
                 </p>
               ) : null}
               {requestMessage ? (
