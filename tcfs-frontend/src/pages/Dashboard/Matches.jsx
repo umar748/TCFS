@@ -8,7 +8,6 @@ import {
   FaMapMarkerAlt,
   FaSlidersH,
   FaStar,
-  FaTimes,
 } from 'react-icons/fa';
 import { getToken, getUser } from '../../services/auth';
 
