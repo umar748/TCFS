@@ -1,10 +1,7 @@
 import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getUser, removeToken, getToken } from '../../services/auth';
-import { FaBell, FaComments, FaPlane, FaPlus, FaIdCard, FaCog, FaHandshake, FaQuestionCircle, FaSignOutAlt, FaGlobe, FaTimes } from 'react-icons/fa';
-import 'leaflet/dist/leaflet.css';
-import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
-import L from 'leaflet';
+import { FaBell, FaComments, FaPlane, FaPlus, FaIdCard, FaCog, FaHandshake, FaQuestionCircle, FaSignOutAlt } from 'react-icons/fa';
 
 const formatDate = (d) => new Date(d).toLocaleDateString();
 
@@ -25,170 +22,9 @@ export default function User() {
   const [error, setError] = useState('');
   const [mode, setMode] = useState('Trips'); // 'Trips' | 'Users'
   const [menuOpen, setMenuOpen] = useState(false);
-  const [showMap, setShowMap] = useState(false);
   const menuRef = useRef(null);
 
-  // Map States
-  const [mapQuery, setMapQuery] = useState('london');
-  const [place, setPlace] = useState(null);
-  const [geoLoading, setGeoLoading] = useState(false);
-  const [geoError, setGeoError] = useState('');
-  const [markers, setMarkers] = useState([]);
-  const [mapCenter, setMapCenter] = useState([20, 0]);
-  const [mapZoom, setMapZoom] = useState(2);
-  const [suggestions, setSuggestions] = useState([]);
-  const [suggestOpen, setSuggestOpen] = useState(false);
-  const [suggestLoading, setSuggestLoading] = useState(false);
-  const [liveGpsId, setLiveGpsId] = useState(null);
-  const [liveGpsActive, setLiveGpsActive] = useState(false);
-  const [favorites, setFavorites] = useState([]);
 
-  const defaultIcon = new L.Icon({
-    iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-    popupAnchor: [1, -34],
-    shadowSize: [41, 41],
-  });
-
-  const MapClickHandler = () => {
-    useMapEvents({
-      click: (e) => {
-        const { lat, lng } = e.latlng;
-        setMarkers((prev) => [...prev, { lat, lon: lng, label: 'Dropped' }]);
-      },
-    });
-    return null;
-  };
-
-  const MapRecenter = ({ center, zoom }) => {
-    const map = useMapEvents({});
-    useEffect(() => {
-      if (Array.isArray(center) && center.length === 2 && Number.isFinite(center[0]) && Number.isFinite(center[1])) {
-        map.setView(center, zoom || map.getZoom());
-      }
-    }, [center, zoom, map]);
-    return null;
-  };
-
-  const handleMapSearch = (e) => {
-    if (e) e.preventDefault();
-    const q = (mapQuery || '').trim();
-    if (!q) return;
-    setGeoLoading(true);
-    setGeoError('');
-    fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=1`, {
-      headers: { 'Accept': 'application/json' }
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        if (!Array.isArray(data) || data.length === 0) {
-          setGeoError('No results found.');
-          return;
-        }
-        const d = data[0];
-        const lat = d.lat;
-        const lon = d.lon;
-        setPlace({ name: d.display_name, lat, lon });
-        setMarkers([{ lat, lon, label: d.display_name }]);
-        setMapCenter([Number(lat), Number(lon)]);
-        setMapZoom(13);
-      })
-      .catch(() => setGeoError('Lookup failed.'))
-      .finally(() => setGeoLoading(false));
-  };
-
-  const handleUseCurrentLocation = () => {
-    if (!navigator.geolocation) return;
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const lat = pos.coords.latitude;
-        const lon = pos.coords.longitude;
-        setPlace({ name: 'Current Location', lat, lon });
-        setMarkers((prev) => [...prev, { lat, lon, label: 'You are here' }]);
-        setMapCenter([lat, lon]);
-        setMapZoom(13);
-      },
-      () => setGeoError('Permission denied.'),
-      { enableHighAccuracy: true, timeout: 10000 }
-    );
-  };
-
-  const startLiveGps = () => {
-    if (!navigator.geolocation || liveGpsActive) return;
-    const id = navigator.geolocation.watchPosition(
-      (pos) => {
-        const lat = pos.coords.latitude;
-        const lon = pos.coords.longitude;
-        setMarkers((prev) => {
-          const others = prev.filter((m) => m.label !== 'You are here');
-          return [...others, { lat, lon, label: 'You are here' }];
-        });
-        setMapCenter([lat, lon]);
-      },
-      () => setGeoError('Live GPS failed.'),
-      { enableHighAccuracy: true, timeout: 10000 }
-    );
-    setLiveGpsId(id);
-    setLiveGpsActive(true);
-  };
-
-  const stopLiveGps = () => {
-    if (liveGpsId != null) navigator.geolocation.clearWatch(liveGpsId);
-    setLiveGpsId(null);
-    setLiveGpsActive(false);
-  };
-
-  const handleAddFavorite = () => {
-    if (!place) return;
-    const item = { name: place.name, lat: Number(place.lat), lon: Number(place.lon) };
-    if (favorites.some(f => f.name === item.name)) return;
-    const next = [...favorites, item];
-    setFavorites(next);
-    localStorage.setItem('favorites', JSON.stringify(next));
-  };
-
-  const handleSelectSuggestion = (item) => {
-    setPlace({ name: item.name, lat: item.lat, lon: item.lon });
-    setMarkers([{ lat: Number(item.lat), lon: Number(item.lon), label: item.name }]);
-    setMapCenter([Number(item.lat), Number(item.lon)]);
-    setMapZoom(13);
-    setSuggestOpen(false);
-  };
-
-  useEffect(() => {
-    const q = (mapQuery || '').trim();
-    if (!q || q.length < 2) {
-      setSuggestions([]);
-      setSuggestOpen(false);
-      return;
-    }
-    setSuggestLoading(true);
-    const t = setTimeout(() => {
-      fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=5`)
-        .then(r => r.json())
-        .then(data => {
-          setSuggestions(data.map(d => ({ name: d.display_name, lat: d.lat, lon: d.lon })));
-          setSuggestOpen(data.length > 0);
-        })
-        .finally(() => setSuggestLoading(false));
-    }, 350);
-    return () => clearTimeout(t);
-  }, [mapQuery]);
-
-  useEffect(() => {
-    try {
-      const f = JSON.parse(localStorage.getItem('favorites') || '[]');
-      if (Array.isArray(f)) setFavorites(f);
-    } catch { }
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      if (liveGpsId != null) navigator.geolocation.clearWatch(liveGpsId);
-    };
-  }, [liveGpsId]);
 
   useEffect(() => {
     const fetchTrips = async () => {
@@ -283,13 +119,12 @@ export default function User() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-4xl font-extrabold">
-              <span className="text-blue-500">Explore </span>
-              <span className="text-green-400">Destinations</span>
+              <span className="text-blue-500">User </span>
+              <span className="text-green-400">Dashboard</span>
             </h1>
-            <p className="text-gray-400 text-lg mt-2">Discover your next big adventure</p>
+            <p className="text-gray-400 text-lg mt-2">Manage your trips, requests, and activity</p>
           </div>
           <div className="flex items-center gap-3 relative" ref={menuRef}>
-            <button onClick={() => setShowMap(true)} className="text-white bg-blue-600 hover:bg-blue-700 font-bold rounded-lg text-sm px-4 py-2.5 transition-all duration-300 flex items-center gap-2 hover:shadow-lg hover:shadow-blue-500/50"><FaGlobe /> World Map</button>
             <button onClick={() => navigate('/dashboard/trips/create')} className="text-white bg-green-600 hover:bg-green-700 font-bold rounded-lg text-sm px-4 py-2.5 transition-all duration-300 flex items-center gap-2 hover:shadow-lg hover:shadow-green-500/50"><FaPlus /> Create Trip</button>
             <button className="relative" onClick={() => setMenuOpen(v => !v)}>
               <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-green-500 text-white flex items-center justify-center text-xs font-semibold hover:scale-110 transition-transform duration-300">
@@ -527,52 +362,6 @@ export default function User() {
         </div>
       </div>
 
-      {showMap && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-gray-950 rounded-xl shadow-2xl border border-gray-800 max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-            <div className="flex items-center justify-between p-6 border-b border-gray-800">
-              <h2 className="text-xl font-bold text-white">Explore the World</h2>
-              <button onClick={() => setShowMap(false)} className="text-gray-400 hover:text-white transition-all">
-                <FaTimes size={24} />
-              </button>
-            </div>
-            <div className="flex-1 overflow-auto p-6 relative">
-              <div className="absolute top-10 left-1/2 transform -translate-x-1/2 z-[1000] width-[min(720px, 90%)]">
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={mapQuery}
-                    onChange={(e) => setMapQuery(e.target.value)}
-                    placeholder="Search worldwide places..."
-                    className="flex-1 bg-gray-900 border border-gray-700 text-gray-200 rounded-lg p-3 shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-500"
-                  />
-                  <button
-                    onClick={handleMapSearch}
-                    className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-6 py-3 shadow-lg font-bold transition-all"
-                  >
-                    Search
-                  </button>
-                </div>
-              </div>
-
-              <MapContainer
-                center={mapCenter}
-                zoom={mapZoom}
-                style={{ height: '500px', width: '100%', borderRadius: '12px' }}
-              >
-                <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OpenStreetMap" />
-                <MapRecenter center={mapCenter} zoom={mapZoom} />
-                {markers.map((m, idx) => (
-                  <Marker key={idx} position={[Number(m.lat), Number(m.lon)]} icon={defaultIcon}>
-                    <Popup>{m.label || 'Marker'}</Popup>
-                  </Marker>
-                ))}
-                <MapClickHandler />
-              </MapContainer>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

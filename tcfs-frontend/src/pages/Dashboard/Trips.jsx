@@ -4,6 +4,28 @@ import { getToken } from '../../services/auth';
 import { socket } from '../../socket';
 import { FaArrowLeft, FaPlus, FaCalendarAlt, FaDollarSign, FaMapMarkerAlt, FaUsers, FaEdit } from 'react-icons/fa';
 
+const API_URL = import.meta.env.VITE_API_URL || '';
+
+const inferTripImage = (destination = '') => {
+  const lower = String(destination).toLowerCase();
+  if (lower.includes('lahore')) return 'https://images.unsplash.com/photo-1564507592333-c60657eea523?w=800&q=80';
+  if (lower.includes('skardu')) return 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80';
+  if (lower.includes('hunza')) return 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&q=80';
+  if (lower.includes('islamabad')) return 'https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?w=800&q=80';
+  if (lower.includes('karachi')) return 'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=800&q=80';
+  return 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=800&q=80';
+};
+
+const resolveTripImage = (image, destination) => {
+  const src = String(image || '').trim();
+  if (!src) return inferTripImage(destination);
+  if (src.startsWith('data:image/')) return src;
+  if (src.startsWith('http://') || src.startsWith('https://')) return src;
+  if (src.startsWith('//')) return `https:${src}`;
+  if (src.startsWith('/')) return `${API_URL}${src}`;
+  return inferTripImage(destination);
+};
+
 export default function Trips() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -72,71 +94,85 @@ export default function Trips() {
     const focusId = params.get('focusTrip');
     const isFocus = focusId === t._id;
     const isCompleted = completedTrips.some((trip) => trip._id === t._id);
+    const tripImage = resolveTripImage(t.image, t.destination);
 
     return (
       <div
         key={t._id}
         ref={(el) => { if (el) cardRefs.current[t._id] = el; }}
-        className={`bg-gray-950 rounded-xl border overflow-hidden shadow-2xl hover:shadow-lg hover:shadow-blue-500/20 transition-all duration-300 group ${
-          isFocus ? 'border-blue-500 ring-2 ring-blue-400' : 'border-gray-800 hover:border-blue-500/50'
+        className={`group overflow-hidden rounded-[2rem] bg-[#111827] shadow-[0_28px_60px_-25px_rgba(0,0,0,0.65)] transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl ${
+          isFocus ? 'ring-2 ring-blue-400' : ''
         }`}
       >
-        <div className={`p-6 text-white ${isCompleted ? 'bg-gradient-to-r from-gray-700 to-gray-600' : 'bg-gradient-to-r from-blue-600 to-green-600'}`}>
-          <h3 className="text-2xl font-bold">{t.destination}</h3>
-          <p className="text-sm text-gray-100 mt-1 flex items-center gap-1">
-            <FaCalendarAlt className="w-3 h-3" />
-            {new Date(t.start_date).toLocaleDateString()} - {new Date(t.end_date).toLocaleDateString()}
-          </p>
+        <div className="relative h-72 overflow-hidden">
+          <img
+            src={tripImage}
+            alt={`${t.destination} trip`}
+            className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+            loading="lazy"
+            onError={(e) => {
+              e.currentTarget.onerror = null;
+              e.currentTarget.src = inferTripImage(t.destination);
+            }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-950/30 to-transparent" />
+          <div className="absolute right-5 top-5 rounded-2xl bg-emerald-500/95 px-4 py-2 text-sm font-semibold text-slate-950 shadow-lg shadow-emerald-500/20">
+            ${t.budget}
+          </div>
+          <div className="absolute left-5 bottom-5 right-5 rounded-[2rem] border border-white/10 bg-black/30 p-5 backdrop-blur">
+            <p className="text-xs uppercase tracking-[0.3em] text-slate-300">My Trip</p>
+            <h3 className="mt-2 text-3xl font-semibold text-white">{t.destination}</h3>
+            <p className="mt-2 text-sm text-slate-300 line-clamp-2">{t.description}</p>
+          </div>
         </div>
 
-        <div className="p-6 space-y-4">
-          <div className="flex items-center gap-3">
-            <FaDollarSign className="text-green-400 text-lg" />
-            <div>
-              <p className="text-xs text-gray-500">Budget</p>
-              <p className="text-lg font-bold text-white">${t.budget}</p>
-            </div>
+        <div className="space-y-5 p-6">
+          <div className="flex flex-col gap-3 text-slate-300 text-sm">
+            <span className="inline-flex items-center gap-2 rounded-full bg-white/5 px-3 py-2 w-fit">
+              <FaCalendarAlt className="w-3 h-3" />
+              {new Date(t.start_date).toLocaleDateString()} - {new Date(t.end_date).toLocaleDateString()}
+            </span>
           </div>
-
-          <p className="text-gray-300 text-sm line-clamp-2">{t.description}</p>
 
           {t.interests && t.interests.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {t.interests.slice(0, 3).map((interest, i) => (
-                <span key={i} className="text-xs bg-blue-500/20 text-blue-300 px-2 py-1 rounded-full border border-blue-500/30">
+                <span key={i} className="rounded-full border border-white/10 bg-slate-900/70 px-3 py-2 text-xs uppercase tracking-[0.18em] text-slate-300">
                   {interest}
                 </span>
               ))}
               {t.interests.length > 3 && (
-                <span className="text-xs bg-gray-700 text-gray-300 px-2 py-1 rounded-full">
+                <span className="rounded-full border border-white/10 bg-slate-900/70 px-3 py-2 text-xs uppercase tracking-[0.18em] text-slate-300">
                   +{t.interests.length - 3} more
                 </span>
               )}
             </div>
           )}
 
-          <div className="border-t border-gray-700 pt-4 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <FaUsers className="text-gray-500" />
-              <span className="text-sm text-gray-400">{t.participants?.length || 1} Participants</span>
+          <div className="rounded-3xl border border-white/10 bg-white/5 p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <FaUsers className="text-gray-400" />
+                <span className="text-sm text-gray-300">{t.participants?.length || 1} Participants</span>
+              </div>
+              <span className={`text-xs font-bold px-3 py-1 rounded-full ${
+                isCompleted
+                  ? 'bg-gray-500/20 text-gray-300'
+                  : 'bg-green-500/20 text-green-400'
+              }`}>
+                {isCompleted ? 'completed' : (t.status || 'upcoming')}
+              </span>
             </div>
-            <span className={`text-xs font-bold px-3 py-1 rounded-full ${
-              isCompleted
-                ? 'bg-gray-500/20 text-gray-300'
-                : 'bg-green-500/20 text-green-400'
-            }`}>
-              {isCompleted ? 'completed' : (t.status || 'upcoming')}
-            </span>
           </div>
 
           <div className="mt-4 grid grid-cols-2 gap-3">
             <button
               onClick={() => navigate(`/dashboard/trips/create?tripId=${t._id}`)}
-              className="w-full text-white bg-emerald-600 hover:bg-emerald-700 font-bold rounded-lg text-sm px-4 py-2.5 transition-all duration-300 hover:shadow-lg hover:shadow-emerald-500/40 inline-flex items-center justify-center gap-2"
+              className="w-full text-white bg-emerald-600 hover:bg-emerald-700 font-bold rounded-xl text-sm px-4 py-3 transition-all duration-300 hover:shadow-lg hover:shadow-emerald-500/40 inline-flex items-center justify-center gap-2"
             >
               <FaEdit /> Edit
             </button>
-            <button className="w-full text-white bg-blue-600 hover:bg-blue-700 font-bold rounded-lg text-sm px-4 py-2.5 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/50">
+            <button className="w-full text-white bg-blue-600 hover:bg-blue-700 font-bold rounded-xl text-sm px-4 py-3 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/50">
               View Details
             </button>
           </div>

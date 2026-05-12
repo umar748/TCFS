@@ -36,6 +36,7 @@ export default function CreateTrip() {
   const params = new URLSearchParams(location.search);
   const tripId = params.get('tripId');
   const isEditMode = Boolean(tripId);
+  const SUPPORTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 
   useEffect(() => {
     const s = Number(params.get('step') || '1');
@@ -138,6 +139,11 @@ export default function CreateTrip() {
 
     if (!file.type.startsWith('image/')) {
       setError('Please select a valid image file');
+      return;
+    }
+
+    if (!SUPPORTED_IMAGE_TYPES.includes(file.type)) {
+      setError('Supported formats: JPG, PNG, WEBP, GIF');
       return;
     }
 

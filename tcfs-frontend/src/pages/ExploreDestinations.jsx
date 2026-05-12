@@ -1,12 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Map, Plus, Search, Heart, User, Calendar } from 'lucide-react';
+import { Plus, Search, Heart, User, Calendar } from 'lucide-react';
 import { getToken, getUser } from '../services/auth';
-import 'leaflet/dist/leaflet.css';
-import { MapContainer, TileLayer, Marker, Popup, useMapEvents, Polyline } from 'react-leaflet';
-import L from 'leaflet';
 
 const MAX_BUDGET = 50000;
+const API_URL = import.meta.env.VITE_API_URL || '';
 
 const normalizeToStartOfDay = (value) => {
   const date = new Date(value);
@@ -35,14 +33,7 @@ const ExploreDestinations = () => {
   const [requestingId, setRequestingId] = useState('');
   const [requestStatus, setRequestStatus] = useState({});
   const [outgoingRequests, setOutgoingRequests] = useState({});
-  const [showMap, setShowMap] = useState(false);
-  const [mapCenter, setMapCenter] = useState([33.6844, 73.0479]);
-  const [mapZoom, setMapZoom] = useState(13);
-  const [userMarker, setUserMarker] = useState(null);
-  const [tripMarkers, setTripMarkers] = useState([]);
-  const [geoError, setGeoError] = useState('');
-  const [liveGpsId, setLiveGpsId] = useState(null);
-  const [liveGpsActive, setLiveGpsActive] = useState(false);
+
 
   const getRangeBackground = (value, max) => {
     const percent = Math.round((value / max) * 100);
@@ -51,29 +42,7 @@ const ExploreDestinations = () => {
     };
   };
 
-  const defaultIcon = new L.Icon({
-    iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-    popupAnchor: [1, -34],
-    shadowSize: [41, 41],
-  });
 
-  const MapRecenter = ({ center, zoom }) => {
-    const map = useMapEvents({});
-    useEffect(() => {
-      if (Array.isArray(center) && center.length === 2) {
-        map.setView(center, zoom || map.getZoom());
-      }
-    }, [center, zoom, map]);
-    return null;
-  };
-
-  const combinedMarkers = [
-    ...(userMarker ? [userMarker] : []),
-    ...tripMarkersWithDistance
-  ];
 
   const formatDateRange = (startDate, endDate) => {
     const start = new Date(startDate);
@@ -101,30 +70,17 @@ const ExploreDestinations = () => {
     return 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=800&q=80';
   };
 
-  const computeDistanceKm = (lat1, lon1, lat2, lon2) => {
-    const toRad = (value) => (value * Math.PI) / 180;
-    const R = 6371; // Earth radius in km
-    const dLat = toRad(lat2 - lat1);
-    const dLon = toRad(lon2 - lon1);
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
-      Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return Number((R * c).toFixed(1));
+  const getTripImage = (image, destination) => {
+    const src = String(image || '').trim();
+    if (!src) return inferTripImage(destination);
+    if (src.startsWith('data:image/')) return src;
+    if (src.startsWith('http://') || src.startsWith('https://')) return src;
+    if (src.startsWith('//')) return `https:${src}`;
+    if (src.startsWith('/')) return `${API_URL}${src}`;
+    return inferTripImage(destination);
   };
 
-  const tripMarkersWithDistance = useMemo(() => {
-    if (!userMarker) return tripMarkers;
-    return [...tripMarkers]
-      .map((marker) => ({
-        ...marker,
-        distanceKm: computeDistanceKm(userMarker.lat, userMarker.lon, marker.lat, marker.lon)
-      }))
-      .sort((a, b) => (a.distanceKm || 0) - (b.distanceKm || 0));
-  }, [tripMarkers, userMarker]);
 
-  const nearestTrip = tripMarkersWithDistance.length > 0 ? tripMarkersWithDistance[0] : null;
 
   useEffect(() => {
     let cancelled = false;
@@ -171,7 +127,7 @@ const ExploreDestinations = () => {
           return {
             id: trip.id,
             destination: trip.destination,
-            image: trip.image || inferTripImage(trip.destination),
+            image: getTripImage(trip.image, trip.destination),
             title: trip.title || `${trip.destination} Trip`,
             duration: durationDays,
             dates: formatDateRange(trip.start_date, trip.end_date),
@@ -222,11 +178,7 @@ const ExploreDestinations = () => {
     };
   }, []);
 
-  useEffect(() => {
-    return () => {
-      if (liveGpsId != null) navigator.geolocation.clearWatch(liveGpsId);
-    };
-  }, [liveGpsId]);
+
 
   const filteredTrips = useMemo(() => {
     const monthMap = {
@@ -278,51 +230,7 @@ const ExploreDestinations = () => {
     return list;
   }, [budget, continent, departureMonth, destinationSearch, duration, sortBy, trips]);
 
-  useEffect(() => {
-    if (!showMap || filteredTrips.length === 0) return;
 
-    let cancelled = false;
-
-    const geocodeTrips = async () => {
-      try {
-        const uniqueTrips = filteredTrips.slice(0, 12);
-        const results = await Promise.all(
-          uniqueTrips.map(async (trip) => {
-            try {
-              const response = await fetch(
-                `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(trip.destination)}&limit=1`,
-                { headers: { Accept: 'application/json' } }
-              );
-              const data = await response.json().catch(() => []);
-              if (!Array.isArray(data) || data.length === 0) return null;
-              return {
-                lat: Number(data[0].lat),
-                lon: Number(data[0].lon),
-                label: trip.destination,
-                kind: 'trip',
-                trip
-              };
-            } catch {
-              return null;
-            }
-          })
-        );
-
-        if (!cancelled) {
-          setTripMarkers(results.filter(Boolean));
-        }
-      } catch {
-        if (!cancelled) {
-          setTripMarkers([]);
-        }
-      }
-    };
-
-    geocodeTrips();
-    return () => {
-      cancelled = true;
-    };
-  }, [showMap, filteredTrips]);
 
   const toggleBookmark = (tripId) => {
     setBookmarked((prev) => ({
@@ -378,54 +286,7 @@ const ExploreDestinations = () => {
     }
   };
 
-  const handleOpenWorldMap = () => {
-    setShowMap(true);
-    setGeoError('');
-    if (!navigator.geolocation) {
-      setGeoError('Geolocation is not supported on this device.');
-      return;
-    }
 
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const lat = pos.coords.latitude;
-        const lon = pos.coords.longitude;
-        setMapCenter([lat, lon]);
-        setMapZoom(15);
-        setUserMarker({ lat, lon, label: 'You are here', kind: 'user' });
-      },
-      () => {
-        setGeoError('Location permission denied or unavailable.');
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
-    );
-  };
-
-  const startLiveTracking = () => {
-    if (!navigator.geolocation || liveGpsActive) return;
-    const id = navigator.geolocation.watchPosition(
-      (pos) => {
-        const lat = pos.coords.latitude;
-        const lon = pos.coords.longitude;
-        setMapCenter([lat, lon]);
-        setMapZoom(15);
-        setUserMarker({ lat, lon, label: 'Live location', kind: 'user' });
-        setGeoError('');
-      },
-      () => {
-        setGeoError('Unable to track live location.');
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 }
-    );
-    setLiveGpsId(id);
-    setLiveGpsActive(true);
-  };
-
-  const stopLiveTracking = () => {
-    if (liveGpsId != null) navigator.geolocation.clearWatch(liveGpsId);
-    setLiveGpsId(null);
-    setLiveGpsActive(false);
-  };
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-white font-['Plus_Jakarta_Sans']">
@@ -439,14 +300,7 @@ const ExploreDestinations = () => {
             <p className="text-[#94a3b8] text-lg">Discover your next big adventure</p>
           </div>
           <div className="flex items-center gap-4">
-            <button
-              aria-label="Open World Map"
-              onClick={handleOpenWorldMap}
-              className="flex items-center gap-2 px-6 py-3 bg-[#2563eb] hover:bg-blue-600 text-white font-semibold rounded-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-[#2563eb]/30"
-            >
-              <Map className="w-5 h-5" />
-              World Map
-            </button>
+
             <button
               aria-label="Create Trip"
               onClick={() => navigate('/dashboard/trips/create')}
@@ -637,138 +491,136 @@ const ExploreDestinations = () => {
                     : trip.daysRemaining === 1
                       ? '1 day remaining'
                       : `${trip.daysRemaining} days remaining`;
+                  const tripImage = getTripImage(trip.image, trip.destination);
                   return (
                     <div
                       key={trip.id}
-                      className="bg-[#1e293b] rounded-3xl overflow-hidden transition-all duration-400 hover:-translate-y-2 hover:shadow-2xl hover:shadow-black/50 cursor-pointer border-2 border-transparent hover:border-[#2563eb]/50"
+                      className="group overflow-hidden rounded-[2rem] bg-[#111827] shadow-[0_28px_60px_-25px_rgba(0,0,0,0.65)] transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl"
                     >
-                      <div
-                        className="relative h-56 bg-cover bg-center"
-                        style={{ backgroundImage: `url(${trip.image})` }}
-                        role="img"
-                        aria-label={`${trip.destination} scenic view`}
-                      >
-                        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/30 to-transparent" />
-                        <div className="absolute bottom-4 left-6 right-6">
-                          <h3 className="text-3xl font-bold font-['Sora']">{trip.destination}</h3>
+                      <div className="relative h-72 overflow-hidden">
+                        <img
+                          src={tripImage}
+                          alt={`${trip.destination} scenic view`}
+                          className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                          loading="lazy"
+                          onError={(e) => {
+                            e.currentTarget.onerror = null;
+                            e.currentTarget.src = inferTripImage(trip.destination);
+                          }}
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-950/30 to-transparent" />
+
+                        <div className="absolute left-5 top-5 inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/40 px-3 py-2 text-sm text-slate-200 backdrop-blur">
+                          {trip.continent}
+                        </div>
+
+                        <div className="absolute right-5 top-5 rounded-2xl bg-emerald-500/95 px-4 py-2 text-sm font-semibold text-slate-950 shadow-lg shadow-emerald-500/20">
+                          ${trip.price}
+                        </div>
+
+                        <div className="absolute left-5 bottom-5 right-5 rounded-[2rem] border border-white/10 bg-black/30 p-5 backdrop-blur">
+                          <p className="text-xs uppercase tracking-[0.3em] text-slate-300">Explore Destination</p>
+                          <h3 className="mt-2 text-3xl font-semibold text-white">{trip.destination}</h3>
+                          <p className="mt-2 text-sm text-slate-300 line-clamp-2">{trip.title}</p>
                         </div>
                       </div>
 
-                      <div className="p-6">
-                        <h4 className="text-lg font-bold mb-4 text-white">{trip.title}</h4>
+                      <div className="space-y-5 p-6">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between text-slate-300 text-sm">
+                          <span className="inline-flex items-center gap-2 rounded-full bg-white/5 px-3 py-2">
+                            <Calendar className="h-4 w-4" /> {trip.duration} days
+                          </span>
+                          <span className="inline-flex items-center gap-2 rounded-full bg-white/5 px-3 py-2">
+                            {trip.dates}
+                          </span>
+                        </div>
 
-                        <div className="flex items-center gap-4 mb-4 text-slate-400 text-sm">
-                          <div className="flex items-center gap-2">
-                            <Calendar className="w-4 h-4" />
-                            <span>{trip.duration} days</span>
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          <div className="rounded-3xl border border-white/10 bg-white/5 p-4">
+                            <div className="text-xs uppercase tracking-[0.24em] text-slate-400">Organizer</div>
+                            <div className="mt-3 flex items-center gap-3">
+                              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-500 to-emerald-500 text-sm font-bold text-white">
+                                {trip.organizer.initials}
+                              </div>
+                              <div>
+                                <p className="text-sm font-semibold text-white">{trip.organizer.name}</p>
+                                <p className="text-xs text-slate-400">{trip.organizer.role}</p>
+                              </div>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <Calendar className="w-4 h-4" />
-                            <span>{trip.dates}</span>
+                          <div className="rounded-3xl border border-white/10 bg-white/5 p-4">
+                            <div className="text-xs uppercase tracking-[0.24em] text-slate-400">Availability</div>
+                            <div className="mt-3 text-sm text-white">{trip.groupSize.current}/{trip.groupSize.max} spots</div>
+                            <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-800">
+                              <div
+                                className="h-full bg-emerald-400 transition-all duration-300"
+                                style={{ width: `${(trip.groupSize.current / trip.groupSize.max) * 100}%` }}
+                              />
+                            </div>
                           </div>
                         </div>
 
-                        {trip.daysRemaining != null && (
-                          <div className="mb-4 inline-flex rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-200">
-                            {daysRemainingLabel}
-                          </div>
-                        )}
-
-                        <div className="flex items-center gap-3 mb-4 pb-4 border-b border-slate-700">
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-green-500 flex items-center justify-center text-white font-bold text-sm">
-                            {trip.organizer.initials}
-                          </div>
-                          <div>
-                            <div className="text-white font-semibold text-sm">{trip.organizer.name}</div>
-                            <div className="text-slate-400 text-xs">{trip.organizer.role}</div>
-                          </div>
-                        </div>
-
-                        <div className="flex flex-wrap gap-2 mb-4">
+                        <div className="flex flex-wrap gap-2">
                           {trip.tags.map((tag, index) => (
                             <span
                               key={`${trip.id}-${tag}-${index}`}
-                              className="px-3 py-1 bg-blue-500/15 border border-blue-500/30 rounded-full text-xs font-medium text-blue-300"
+                              className="rounded-full border border-white/10 bg-slate-900/70 px-3 py-2 text-xs uppercase tracking-[0.18em] text-slate-300"
                             >
                               {tag}
                             </span>
                           ))}
                         </div>
 
-                        <div className="flex items-center gap-3 mb-5 bg-green-500/15 rounded-lg p-3">
-                          <div className="flex-1 h-2 bg-slate-600 rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-green-500 rounded-full transition-all duration-300"
-                              style={{ width: `${(trip.groupSize.current / trip.groupSize.max) * 100}%` }}
-                            />
-                          </div>
-                          <span className="text-green-400 font-semibold text-sm">
-                            {trip.groupSize.current}/{trip.groupSize.max} spots
-                          </span>
-                        </div>
-
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <div className="text-slate-400 text-xs uppercase tracking-wide font-semibold">From</div>
-                            <div className="text-2xl font-bold text-green-400 font-['Sora']">${trip.price}</div>
-                          </div>
-                          <div className="flex gap-2">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                toggleBookmark(trip.id);
-                              }}
-                              className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-300 ${
-                                bookmarked[trip.id]
-                                  ? 'bg-red-500/20 border-2 border-red-500'
-                                  : 'bg-slate-700 border-2 border-slate-600 hover:border-red-500'
-                              }`}
-                            >
-                              <Heart
-                                className={`w-5 h-5 transition-colors ${
-                                  bookmarked[trip.id] ? 'fill-red-500 text-red-500' : 'text-slate-400'
-                                }`}
-                              />
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleJoinRequest(trip);
-                              }}
-                              disabled={isOwnTrip || isRequestLocked || requestingId === String(trip.id)}
-                              className="flex-1 bg-[#2563eb] hover:bg-[#1d4ed8] disabled:bg-slate-700 disabled:text-slate-400 text-white font-semibold py-3 px-5 rounded-xl transition-all duration-300 hover:transform hover:-translate-y-1 hover:shadow-lg hover:shadow-[#2563eb]/30"
-                            >
-                              {isOwnTrip
-                                ? 'Your Trip'
-                                : outgoingStatus === 'accepted'
-                                  ? 'Accepted'
-                                  : outgoingStatus === 'pending'
-                                    ? 'Request Sent'
-                                    : requestingId === String(trip.id)
-                                      ? 'Sending...'
-                                      : 'Request to Join'}
-                            </button>
-                          </div>
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleJoinRequest(trip);
+                            }}
+                            disabled={isOwnTrip || isRequestLocked || requestingId === String(trip.id)}
+                            className="min-h-[52px] flex-1 rounded-3xl bg-[#2563eb] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#1d4ed8] disabled:bg-slate-800 disabled:text-slate-400"
+                          >
+                            {isOwnTrip
+                              ? 'Your Trip'
+                              : outgoingStatus === 'accepted'
+                                ? 'Accepted'
+                                : outgoingStatus === 'pending'
+                                  ? 'Request Sent'
+                                  : requestingId === String(trip.id)
+                                    ? 'Sending...'
+                                    : 'Request to Join'}
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleBookmark(trip.id);
+                            }}
+                            className={`flex h-14 w-14 items-center justify-center rounded-3xl border text-white transition ${
+                              bookmarked[trip.id]
+                                ? 'border-red-500 bg-red-500/15 text-red-300'
+                                : 'border-white/10 bg-white/5 hover:border-emerald-400'
+                            }`}
+                          >
+                            <Heart className={`h-5 w-5 ${bookmarked[trip.id] ? 'fill-red-400 text-red-400' : 'text-slate-300'}`} />
+                          </button>
                         </div>
 
                         {tripStatus ? (
-                          <div
-                            className={`mt-4 rounded-xl border px-3 py-2 text-xs ${
-                              tripStatus.type === 'success'
-                                ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200'
-                                : tripStatus.type === 'error'
-                                  ? 'border-red-500/30 bg-red-500/10 text-red-200'
-                                  : 'border-[#334155] bg-[#0f172a] text-slate-300'
-                            }`}
-                          >
+                          <div className={`rounded-3xl border p-4 text-sm ${
+                            tripStatus.type === 'success'
+                              ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200'
+                              : tripStatus.type === 'error'
+                                ? 'border-red-500/30 bg-red-500/10 text-red-200'
+                                : 'border-white/10 bg-slate-950 text-slate-300'
+                          }`}>
                             {tripStatus.message}
                           </div>
                         ) : outgoingStatus === 'pending' ? (
-                          <div className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+                          <div className="rounded-3xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-200">
                             You already sent a join request for this trip.
                           </div>
                         ) : outgoingStatus === 'accepted' ? (
-                          <div className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-200">
+                          <div className="rounded-3xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-200">
                             Your request for this trip has already been accepted.
                           </div>
                         ) : null}
@@ -782,123 +634,7 @@ const ExploreDestinations = () => {
         </div>
       </div>
 
-      {/* {showMap ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-6">
-          <div className="w-full max-w-6xl overflow-hidden rounded-3xl border border-[#334155] bg-[#1e293b] shadow-2xl">
-            <div className="flex items-center justify-between border-b border-[#334155] px-6 py-4">
-              <div>
-                <h2 className="text-2xl font-bold text-white">Live World Map</h2>
-                <p className="text-sm text-slate-400">Track your current location in real time.</p>
-              </div>
-              <div className="flex items-center gap-3">
-                {liveGpsActive ? (
-                  <button
-                    onClick={stopLiveTracking}
-                    className="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-300 transition hover:bg-red-500/20"
-                  >
-                    Stop Tracking
-                  </button>
-                ) : (
-                  <button
-                    onClick={startLiveTracking}
-                    className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-300 transition hover:bg-emerald-500/20"
-                  >
-                    Start Live Tracking
-                  </button>
-                )}
-                <button
-                  onClick={() => {
-                    stopLiveTracking();
-                    setShowMap(false);
-                  }}
-                  className="rounded-xl border border-[#334155] bg-[#0f172a] px-4 py-2 text-sm font-semibold text-slate-200 transition hover:bg-slate-800"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
 
-            {geoError ? (
-              <div className="border-b border-[#334155] bg-red-500/10 px-6 py-3 text-sm text-red-300">
-                {geoError}
-              </div>
-            ) : null}
-
-            <div className="border-b border-[#334155] px-6 py-4 text-sm text-slate-300 bg-[#111827]/80">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Your Coordinates</p>
-                  <p className="mt-2 text-sm text-white">
-                    {userMarker ? `${userMarker.lat.toFixed(5)}, ${userMarker.lon.toFixed(5)}` : 'Waiting for location...'}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Nearest Trip</p>
-                  <p className="mt-2 text-sm text-white">
-                    {nearestTrip ? `${nearestTrip.label} (${nearestTrip.distanceKm} km)` : 'No trips available'}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Destination coordinates</p>
-                  <p className="mt-2 text-sm text-white">
-                    {nearestTrip ? `${nearestTrip.lat.toFixed(5)}, ${nearestTrip.lon.toFixed(5)}` : 'Select a trip marker'}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="h-[70vh] w-full">
-                <MapContainer
-                  center={mapCenter}
-                  zoom={mapZoom}
-                scrollWheelZoom
-                className="h-full w-full"
-                >
-                <TileLayer
-                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                  attribution="&copy; OpenStreetMap contributors"
-                />
-                <MapRecenter center={mapCenter} zoom={mapZoom} />
-                {userMarker && nearestTrip ? (
-                  <Polyline
-                    pathOptions={{ color: '#60a5fa', weight: 3, opacity: 0.75 }}
-                    positions={[[userMarker.lat, userMarker.lon], [nearestTrip.lat, nearestTrip.lon]]}
-                  />
-                ) : null}
-                {combinedMarkers.map((marker, index) => (
-                  <Marker
-                    key={`${marker.lat}-${marker.lon}-${index}`}
-                    position={[Number(marker.lat), Number(marker.lon)]}
-                    icon={defaultIcon}
-                  >
-                    <Popup>
-                      {marker.kind === 'trip' ? (
-                        <div className="min-w-[180px] text-slate-900">
-                          <div className="font-bold">{marker.trip.destination}</div>
-                          <div className="mt-1 text-sm">{marker.trip.title}</div>
-                          <div className="mt-1 text-sm">By {marker.trip.organizer.name}</div>
-                          <div className="mt-1 text-sm">${marker.trip.price}</div>
-                          <div className="mt-2 text-xs uppercase tracking-[0.15em] text-slate-500">Coordinates</div>
-                          <div className="text-sm">{marker.lat.toFixed(5)}, {marker.lon.toFixed(5)}</div>
-                          {marker.distanceKm != null ? (
-                            <div className="mt-2 text-sm font-semibold text-slate-700">{marker.distanceKm} km away</div>
-                          ) : null}
-                        </div>
-                      ) : (
-                        <div className="min-w-[160px] text-slate-900">
-                          <div className="font-bold">{marker.label}</div>
-                          <div className="mt-2 text-xs uppercase tracking-[0.15em] text-slate-500">Your location</div>
-                          <div className="text-sm">{marker.lat.toFixed(5)}, {marker.lon.toFixed(5)}</div>
-                        </div>
-                      )}
-                    </Popup>
-                  </Marker>
-                ))}
-              </MapContainer>
-            </div>
-          </div>
-        </div>
-      ) : null} */}
     </div>
   );
 };

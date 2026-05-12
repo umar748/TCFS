@@ -12,6 +12,28 @@ import {
   FaPaperPlane
 } from 'react-icons/fa';
 
+const API_URL = import.meta.env.VITE_API_URL || '';
+
+const inferTripImage = (destination = '') => {
+  const lower = String(destination).toLowerCase();
+  if (lower.includes('lahore')) return 'https://images.unsplash.com/photo-1564507592333-c60657eea523?w=800&q=80';
+  if (lower.includes('skardu')) return 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80';
+  if (lower.includes('hunza')) return 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&q=80';
+  if (lower.includes('islamabad')) return 'https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?w=800&q=80';
+  if (lower.includes('karachi')) return 'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=800&q=80';
+  return 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=800&q=80';
+};
+
+const resolveTripImage = (image, destination) => {
+  const src = String(image || '').trim();
+  if (!src) return inferTripImage(destination);
+  if (src.startsWith('data:image/')) return src;
+  if (src.startsWith('http://') || src.startsWith('https://')) return src;
+  if (src.startsWith('//')) return `https:${src}`;
+  if (src.startsWith('/')) return `${API_URL}${src}`;
+  return inferTripImage(destination);
+};
+
 export default function Home() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [trips, setTrips] = useState([]);
@@ -179,80 +201,109 @@ export default function Home() {
                 <p className="text-gray-400 text-lg">No trips found. Be the first to plan one!</p>
               </div>
             ) : (
-              trips.map(trip => (
-                <div key={trip.id || trip._id} className="bg-gray-950 p-6 rounded-xl shadow-2xl border border-gray-800 hover:border-blue-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/20">
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <h3 className="text-xl font-bold text-white">{trip.destination}</h3>
-                      <p className="text-sm text-gray-400">
-                        {new Date(trip.start_date).toLocaleDateString()} - {new Date(trip.end_date).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-green-400 font-bold text-lg">${trip.budget}</span>
-                      <p className="text-xs text-gray-500">Budget</p>
-                    </div>
-                  </div>
-                  
-                  <p className="text-gray-300 text-sm mb-4 line-clamp-3">{trip.description}</p>
-                  
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    {trip.interests?.map((interest, i) => (
-                      <span key={i} className="px-2 py-1 bg-blue-500/20 text-blue-300 text-xs rounded-full border border-blue-500/30">
-                        {interest}
-                      </span>
-                    ))}
-                  </div>
+              trips.map(trip => {
+                const tripId = trip.id || trip._id;
+                const imageSrc = resolveTripImage(trip.image, trip.destination);
+                const start = new Date(trip.start_date);
+                const end = new Date(trip.end_date);
+                const durationDays = Math.max(1, Math.ceil((end - start) / 86400000));
 
-                  <div className="flex items-center gap-3 mb-6">
-                    <img 
-                      src={trip.creator_id?.profilePicture || 'https://via.placeholder.com/40'} 
-                      alt={trip.creator_id?.name} 
-                      className="w-10 h-10 rounded-full border-2 border-blue-500"
-                    />
-                    <div>
-                      <p className="text-sm font-semibold text-white">{trip.creator_id?.name || 'Unknown User'}</p>
-                      <p className="text-xs text-gray-500">Trip Creator</p>
-                    </div>
-                  </div>
-
-                  {requesting === (trip.id || trip._id) ? (
-                    <div className="space-y-3">
-                      <textarea 
-                        className="w-full bg-gray-900 border border-gray-700 text-gray-200 text-sm rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 block p-3.5 placeholder-gray-500 transition-all"
-                        placeholder="Say hi and why you want to join..."
-                        value={message}
-                        onChange={e => setMessage(e.target.value)}
-                        autoFocus
-                        rows="3"
+                return (
+                  <div key={tripId} className="group overflow-hidden rounded-[2rem] bg-[#111827] shadow-[0_28px_60px_-25px_rgba(0,0,0,0.65)] transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl">
+                    <div className="relative h-72 overflow-hidden">
+                      <img
+                        src={imageSrc}
+                        alt={`${trip.destination} trip`}
+                        className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                        loading="lazy"
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = inferTripImage(trip.destination);
+                        }}
                       />
-                      <div className="flex gap-2">
-                        <button 
-                          className="flex-1 text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:ring-blue-800 font-bold rounded-xl text-sm px-5 py-2.5 transition-all duration-300 flex items-center justify-center gap-2 hover:shadow-lg hover:shadow-blue-500/50"
-                        onClick={() => handleJoinRequest(trip.id || trip._id)}
-                          disabled={requesting === trip._id}
-                        >
-                          <FaPaperPlane className="w-3 h-3" />
-                          Send Request
-                        </button>
-                        <button 
-                          className="flex-1 text-gray-200 bg-gray-800 hover:bg-gray-700 border border-gray-700 font-bold rounded-xl text-sm px-5 py-2.5 transition-all duration-300"
-                          onClick={() => setRequesting(null)}
-                        >
-                          Cancel
-                        </button>
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-950/30 to-transparent" />
+
+                      <div className="absolute right-5 top-5 rounded-2xl bg-emerald-500/95 px-4 py-2 text-sm font-semibold text-slate-950 shadow-lg shadow-emerald-500/20">
+                        ${trip.budget}
+                      </div>
+
+                      <div className="absolute left-5 bottom-5 right-5 rounded-[2rem] border border-white/10 bg-black/30 p-5 backdrop-blur">
+                        <p className="text-xs uppercase tracking-[0.3em] text-slate-300">Discover Trip</p>
+                        <h3 className="mt-2 text-3xl font-semibold text-white">{trip.destination}</h3>
+                        <p className="mt-2 text-sm text-slate-300 line-clamp-2">{trip.description}</p>
                       </div>
                     </div>
-                  ) : (
-                    <button 
-                      className="w-full text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:ring-blue-800 font-bold rounded-xl text-sm px-5 py-2.5 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/50"
-                      onClick={() => setRequesting(trip._id)}
-                    >
-                      Request to Join
-                    </button>
-                  )}
-                </div>
-              ))
+
+                    <div className="space-y-5 p-6">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between text-slate-300 text-sm">
+                        <span className="inline-flex items-center gap-2 rounded-full bg-white/5 px-3 py-2">
+                          {durationDays} days
+                        </span>
+                        <span className="inline-flex items-center gap-2 rounded-full bg-white/5 px-3 py-2">
+                          {start.toLocaleDateString()} - {end.toLocaleDateString()}
+                        </span>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2">
+                        {trip.interests?.slice(0, 5).map((interest, i) => (
+                          <span key={i} className="rounded-full border border-white/10 bg-slate-900/70 px-3 py-2 text-xs uppercase tracking-[0.18em] text-slate-300">
+                            {interest}
+                          </span>
+                        ))}
+                      </div>
+
+                      <div className="rounded-3xl border border-white/10 bg-white/5 p-4">
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={trip.creator_id?.profilePicture || 'https://via.placeholder.com/40'}
+                            alt={trip.creator_id?.name}
+                            className="h-10 w-10 rounded-full border border-sky-400 object-cover"
+                          />
+                          <div>
+                            <p className="text-sm font-semibold text-white">{trip.creator_id?.name || 'Unknown User'}</p>
+                            <p className="text-xs text-slate-400">Trip Creator</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {requesting === tripId ? (
+                        <div className="space-y-3">
+                          <textarea
+                            className="w-full rounded-xl border border-gray-700 bg-gray-900 p-3.5 text-sm text-gray-200 placeholder-gray-500 transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                            placeholder="Say hi and why you want to join..."
+                            value={message}
+                            onChange={e => setMessage(e.target.value)}
+                            autoFocus
+                            rows="3"
+                          />
+                          <div className="flex gap-2">
+                            <button
+                              className="flex-1 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-bold text-white transition-all duration-300 hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-500/50"
+                              onClick={() => handleJoinRequest(tripId)}
+                              disabled={requesting === tripId}
+                            >
+                              <span className="inline-flex items-center justify-center gap-2"><FaPaperPlane className="w-3 h-3" /> Send Request</span>
+                            </button>
+                            <button
+                              className="flex-1 rounded-xl border border-gray-700 bg-gray-800 px-5 py-2.5 text-sm font-bold text-gray-200 transition-all duration-300 hover:bg-gray-700"
+                              onClick={() => setRequesting(null)}
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          className="w-full rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold text-white transition-all duration-300 hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-500/50"
+                          onClick={() => setRequesting(tripId)}
+                        >
+                          Request to Join
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })
             )}
           </div>
         </main>

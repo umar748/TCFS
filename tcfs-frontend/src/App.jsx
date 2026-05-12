@@ -18,7 +18,6 @@ import AdminDestinations from "./pages/Admin/AdminDestinations";
 import AdminDestinationDetail from "./pages/Admin/AdminDestinationDetail";
 import RequireRole from "./pages/Auth/RequireRole";
 import Blogs from "./pages/Blogs";
-import User from "./pages/Dashboard/User";
 import Verification from "./pages/Dashboard/Verification";
 import EditProfile from "./pages/Dashboard/EditProfile";
 import Matches from "./pages/Dashboard/Matches";
@@ -35,6 +34,7 @@ import FeedPage from "./pages/Feed/FeedPage";
 import AIChat from "./pages/AI/AIChat";
 import RequestsPage from "./pages/Requests/RequestsPage";
 import ExploreDestinations from "./pages/ExploreDestinations";
+import Home from "./pages/Dashboard/Home";
 import { getUser } from "./services/auth";
 
 export default function App() {
@@ -83,7 +83,7 @@ export default function App() {
         <Route path="/dashboard/admin/destinations" element={<RequireRole role="admin"><AdminDestinations /></RequireRole>} />
         <Route path="/dashboard/admin/destinations/:name" element={<RequireRole role="admin"><AdminDestinationDetail /></RequireRole>} />
 
-        <Route path="/dashboard/user" element={<RequireRole role="user"><User /></RequireRole>} />
+        <Route path="/dashboard/user" element={<RequireRole role="user"><Home /></RequireRole>} />
         <Route path="/dashboard/verification" element={<RequireRole role="user"><Verification /></RequireRole>} />
         <Route path="/dashboard/edit-profile" element={<RequireRole role="user"><EditProfile /></RequireRole>} />
         <Route path="/dashboard/matches" element={<RequireRole role="user"><Matches /></RequireRole>} />

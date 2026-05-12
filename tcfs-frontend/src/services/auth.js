@@ -138,7 +138,7 @@ export async function me() {
   if (!res.ok) {
     sessionStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(TOKEN_KEY);
-    return null;
+    throw new Error('Authentication failed');
   }
 
   return await res.json();

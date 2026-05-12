@@ -75,10 +75,10 @@ export default function Login() {
         if (data.user.role === 'admin') {
           navigate("/dashboard/admin");
         } else {
-          navigate("/dashboard");
+          navigate("/dashboard/user");
         }
       } else {
-        navigate("/dashboard");
+        navigate("/dashboard/user");
       }
     } catch (err) {
       setError(err.message || "Login failed. Please check your credentials and try again.");

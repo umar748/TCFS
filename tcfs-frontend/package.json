@@ -12,6 +12,7 @@
     "test:watch": "vitest --watch"
   },
   "dependencies": {
+    "@react-google-maps/api": "^2.20.8",
     "clsx": "^2.1.1",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.577.0",
