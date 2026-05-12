@@ -136,7 +136,7 @@ const ExploreDestinations = () => {
         const token = getToken();
         const [response, outgoingResponse] = await Promise.all([
           fetch('/api/trips/discover', {
-            headers: { Authorization: `Bearer ${token || ''}` }
+            headers: {}
           }),
           token
             ? fetch('/api/requests/outgoing', {
