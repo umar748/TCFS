@@ -38,6 +38,12 @@ export function SimpleBarChart({ data = [], unit = 'items' }) {
   const stepValue = Math.ceil(maxValue / 4);
   const gridValues = [0, stepValue, stepValue * 2, stepValue * 3, stepValue * 4];
 
+  const linePoints = chartData.map((item, index) => {
+    const x = chartData.length === 1 ? 50 : (index / (chartData.length - 1)) * 100;
+    const y = 100 - (item.value / maxValue) * 100;
+    return `${x},${y}`;
+  }).join(' ');
+
   return (
     <div className="space-y-4">
       <div className="relative overflow-hidden rounded-3xl bg-gray-950/20 border border-gray-800 p-4">
@@ -48,6 +54,23 @@ export function SimpleBarChart({ data = [], unit = 'items' }) {
           <div />
           <div />
         </div>
+        <svg className="pointer-events-none absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+          <polyline
+            points={linePoints}
+            fill="none"
+            stroke="#60a5fa"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          {chartData.map((item, index) => {
+            const x = chartData.length === 1 ? 50 : (index / (chartData.length - 1)) * 100;
+            const y = 100 - (item.value / maxValue) * 100;
+            return (
+              <circle key={index} cx={x} cy={y} r="2.5" fill="#38bdf8" stroke="#fff" strokeWidth="1" />
+            );
+          })}
+        </svg>
         <div className="relative flex gap-4">
           <div className="flex flex-col justify-between text-xs text-gray-500 pr-3">
             {gridValues.slice().reverse().map((value, index) => (
