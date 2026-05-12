@@ -6,7 +6,7 @@ const nameRegex = /^[A-Za-z]+(?: [A-Za-z]+)*$/;
 
 export default function Register() {
   const navigate = useNavigate();
-  const [name, setName] = useState("");
+  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -46,10 +46,10 @@ export default function Register() {
     setTermsError("");
     setError("");
 
-    if (!name.trim()) {
+    if (!fullName.trim()) {
       setNameError("Full name is required.");
       isValid = false;
-    } else if (!nameRegex.test(name.trim())) {
+    } else if (!nameRegex.test(fullName.trim())) {
       setNameError("Name must contain alphabets only.");
       isValid = false;
     }
@@ -97,7 +97,7 @@ export default function Register() {
     if (!validate()) return;
     setLoading(true);
     try {
-      const data = await apiRegister({ name, email, password, role });
+      const data = await apiRegister({ name: fullName, email, password, role });
       storeToken(data?.token);
       if (data?.user) {
         // save user info locally
@@ -196,10 +196,10 @@ export default function Register() {
             <label className="block text-sm font-medium text-neutral-700 mb-2">Full Name</label>
             <input
               type="text"
-              value={name}
+              value={fullName}
               onChange={(e) => {
                 const nextValue = e.target.value.replace(/[^A-Za-z ]/g, "");
-                setName(nextValue);
+                setFullName(nextValue);
                 if (nameError) setNameError("");
               }}
               placeholder="John Doe"
