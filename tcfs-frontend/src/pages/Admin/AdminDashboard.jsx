@@ -46,6 +46,9 @@ export default function AdminDashboard() {
     }
   };
 
+  const registrationTotal = stats.monthlyRegistrations.reduce((sum, item) => sum + item.count, 0);
+  const registrationAvg = stats.monthlyRegistrations.length > 0 ? Math.round(registrationTotal / stats.monthlyRegistrations.length) : 0;
+
   const StatCard = ({ title, value, icon: Icon, color, trend, link }) => {
     const colorMap = {
       blue: 'shadow-blue-500/10',
@@ -134,6 +137,16 @@ export default function AdminDashboard() {
             {/* Monthly Registrations Chart */}
             <div className="xl:col-span-2 animate-slide-up delay-200">
               <ChartCard title="Growth Trajectory" subtitle="Last 6 months of traveler registrations">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 text-sm text-gray-300">
+                  <div className="rounded-3xl border border-gray-800 bg-gray-950/50 p-4">
+                    <p className="text-xs uppercase tracking-[0.2em] text-gray-500">Total Signups</p>
+                    <p className="text-2xl font-bold text-white mt-2">{registrationTotal}</p>
+                  </div>
+                  <div className="rounded-3xl border border-gray-800 bg-gray-950/50 p-4">
+                    <p className="text-xs uppercase tracking-[0.2em] text-gray-500">Average / month</p>
+                    <p className="text-2xl font-bold text-white mt-2">{registrationAvg}</p>
+                  </div>
+                </div>
                 {stats.monthlyRegistrations.length > 0 ? (
                   <SimpleBarChart
                     data={stats.monthlyRegistrations.map(m => ({

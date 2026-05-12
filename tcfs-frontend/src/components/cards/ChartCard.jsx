@@ -35,28 +35,50 @@ export function SimpleBarChart({ data = [], unit = 'items' }) {
 
   const chartData = data.length > 0 ? data : defaultData;
   const maxValue = Math.max(...chartData.map(d => d.value), 1);
+  const stepValue = Math.ceil(maxValue / 4);
+  const gridValues = [0, stepValue, stepValue * 2, stepValue * 3, stepValue * 4];
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-end justify-between gap-2 h-48">
-        {chartData.map((item, index) => (
-          <div key={index} className="flex-1 flex flex-col items-center gap-2">
-            <div className="w-full flex items-end justify-center h-full">
-              <div
-                className={`${item.color} w-full rounded-t transition-all duration-300 hover:opacity-80`}
-                style={{ height: `${(item.value / maxValue) * 100}%` }}
-                title={`${item.label}: ${item.value} ${unit}`}
-              />
-            </div>
-            <span className="text-xs text-neutral-600 font-medium">{item.label}</span>
-          </div>
-        ))}
-      </div>
-      <div className="flex items-center justify-center gap-4 pt-2 border-t border-neutral-100">
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 bg-tcfs-500 rounded"></div>
-          <span className="text-xs text-neutral-600">Monthly registrations ({unit})</span>
+    <div className="space-y-4">
+      <div className="relative overflow-hidden rounded-3xl bg-gray-950/20 border border-gray-800 p-4">
+        <div className="absolute inset-0 grid grid-rows-5 border-t border-dashed border-gray-700 pointer-events-none">
+          <div />
+          <div />
+          <div />
+          <div />
+          <div />
         </div>
+        <div className="relative flex gap-4">
+          <div className="flex flex-col justify-between text-xs text-gray-500 pr-3">
+            {gridValues.slice().reverse().map((value, index) => (
+              <span key={index}>{value}</span>
+            ))}
+          </div>
+          <div className="flex-1 flex items-end gap-3 h-52">
+            {chartData.map((item, index) => {
+              const barHeight = (item.value / maxValue) * 100;
+              return (
+                <div key={index} className="flex-1 flex flex-col items-center gap-2">
+                  <div className="text-[11px] text-gray-300 font-semibold">{item.value}</div>
+                  <div className="relative w-full flex items-end justify-center">
+                    <div
+                      className={`${item.color} w-full rounded-[18px] transition-all duration-300 hover:opacity-90`}
+                      style={{ height: `${barHeight}%` }}
+                      title={`${item.label}: ${item.value} ${unit}`}
+                    />
+                  </div>
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-400">
+                    {item.label}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-gray-400">
+        <p className="font-medium">Monthly registrations ({unit})</p>
+        <p>Values shown above each bar</p>
       </div>
     </div>
   );
