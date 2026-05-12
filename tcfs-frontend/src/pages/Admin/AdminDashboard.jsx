@@ -215,7 +215,11 @@ export default function AdminDashboard() {
                 <div className="flex-1">
                   <h4 className="font-bold text-amber-400 mb-1">Action Required</h4>
                   <p className="text-sm text-gray-400 mb-4">You have {stats.pendingVerifications} identity verification requests waiting for review.</p>
-                  <button className="px-6 py-2.5 bg-amber-500 text-gray-900 text-xs font-black rounded-lg hover:bg-amber-400 transition-all transform active:scale-95 shadow-lg shadow-amber-500/20 uppercase tracking-widest">
+                  <button
+                    type="button"
+                    onClick={() => navigate('/dashboard/admin/verifications')}
+                    className="px-6 py-2.5 bg-amber-500 text-gray-900 text-xs font-black rounded-lg hover:bg-amber-400 transition-all transform active:scale-95 shadow-lg shadow-amber-500/20 uppercase tracking-widest"
+                  >
                     Review Requests
                   </button>
                 </div>
@@ -227,7 +231,11 @@ export default function AdminDashboard() {
                 <div className="flex-1">
                   <h4 className="font-bold text-rose-400 mb-1">Safety Alert</h4>
                   <p className="text-sm text-gray-400 mb-4">{stats.totalReports} unresolved safety reports require your immediate attention.</p>
-                  <button className="px-6 py-2.5 bg-rose-500 text-white text-xs font-black rounded-lg hover:bg-rose-400 transition-all transform active:scale-95 shadow-lg shadow-rose-500/20 uppercase tracking-widest">
+                  <button
+                    type="button"
+                    onClick={() => navigate('/dashboard/admin/reports')}
+                    className="px-6 py-2.5 bg-rose-500 text-white text-xs font-black rounded-lg hover:bg-rose-400 transition-all transform active:scale-95 shadow-lg shadow-rose-500/20 uppercase tracking-widest"
+                  >
                     Moderate Reports
                   </button>
                 </div>
