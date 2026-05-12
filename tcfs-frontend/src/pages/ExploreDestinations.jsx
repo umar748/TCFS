@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Map, Plus, Search, Heart, User, Calendar } from 'lucide-react';
 import { getToken, getUser } from '../services/auth';
 import 'leaflet/dist/leaflet.css';
-import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMapEvents, Polyline } from 'react-leaflet';
 import L from 'leaflet';
 
 const MAX_BUDGET = 50000;
@@ -72,7 +72,7 @@ const ExploreDestinations = () => {
 
   const combinedMarkers = [
     ...(userMarker ? [userMarker] : []),
-    ...tripMarkers
+    ...tripMarkersWithDistance
   ];
 
   const formatDateRange = (startDate, endDate) => {
@@ -100,6 +100,31 @@ const ExploreDestinations = () => {
     if (lower.includes('karachi')) return 'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=800&q=80';
     return 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=800&q=80';
   };
+
+  const computeDistanceKm = (lat1, lon1, lat2, lon2) => {
+    const toRad = (value) => (value * Math.PI) / 180;
+    const R = 6371; // Earth radius in km
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return Number((R * c).toFixed(1));
+  };
+
+  const tripMarkersWithDistance = useMemo(() => {
+    if (!userMarker) return tripMarkers;
+    return [...tripMarkers]
+      .map((marker) => ({
+        ...marker,
+        distanceKm: computeDistanceKm(userMarker.lat, userMarker.lon, marker.lat, marker.lon)
+      }))
+      .sort((a, b) => (a.distanceKm || 0) - (b.distanceKm || 0));
+  }, [tripMarkers, userMarker]);
+
+  const nearestTrip = tripMarkersWithDistance.length > 0 ? tripMarkersWithDistance[0] : null;
 
   useEffect(() => {
     let cancelled = false;
@@ -799,6 +824,29 @@ const ExploreDestinations = () => {
               </div>
             ) : null}
 
+            <div className="border-b border-[#334155] px-6 py-4 text-sm text-slate-300 bg-[#111827]/80">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Your Coordinates</p>
+                  <p className="mt-2 text-sm text-white">
+                    {userMarker ? `${userMarker.lat.toFixed(5)}, ${userMarker.lon.toFixed(5)}` : 'Waiting for location...'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Nearest Trip</p>
+                  <p className="mt-2 text-sm text-white">
+                    {nearestTrip ? `${nearestTrip.label} (${nearestTrip.distanceKm} km)` : 'No trips available'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Destination coordinates</p>
+                  <p className="mt-2 text-sm text-white">
+                    {nearestTrip ? `${nearestTrip.lat.toFixed(5)}, ${nearestTrip.lon.toFixed(5)}` : 'Select a trip marker'}
+                  </p>
+                </div>
+              </div>
+            </div>
+
             <div className="h-[70vh] w-full">
                 <MapContainer
                   center={mapCenter}
@@ -811,6 +859,12 @@ const ExploreDestinations = () => {
                   attribution="&copy; OpenStreetMap contributors"
                 />
                 <MapRecenter center={mapCenter} zoom={mapZoom} />
+                {userMarker && nearestTrip ? (
+                  <Polyline
+                    pathOptions={{ color: '#60a5fa', weight: 3, opacity: 0.75 }}
+                    positions={[[userMarker.lat, userMarker.lon], [nearestTrip.lat, nearestTrip.lon]]}
+                  />
+                ) : null}
                 {combinedMarkers.map((marker, index) => (
                   <Marker
                     key={`${marker.lat}-${marker.lon}-${index}`}
@@ -824,9 +878,18 @@ const ExploreDestinations = () => {
                           <div className="mt-1 text-sm">{marker.trip.title}</div>
                           <div className="mt-1 text-sm">By {marker.trip.organizer.name}</div>
                           <div className="mt-1 text-sm">${marker.trip.price}</div>
+                          <div className="mt-2 text-xs uppercase tracking-[0.15em] text-slate-500">Coordinates</div>
+                          <div className="text-sm">{marker.lat.toFixed(5)}, {marker.lon.toFixed(5)}</div>
+                          {marker.distanceKm != null ? (
+                            <div className="mt-2 text-sm font-semibold text-slate-700">{marker.distanceKm} km away</div>
+                          ) : null}
                         </div>
                       ) : (
-                        marker.label
+                        <div className="min-w-[160px] text-slate-900">
+                          <div className="font-bold">{marker.label}</div>
+                          <div className="mt-2 text-xs uppercase tracking-[0.15em] text-slate-500">Your location</div>
+                          <div className="text-sm">{marker.lat.toFixed(5)}, {marker.lon.toFixed(5)}</div>
+                        </div>
                       )}
                     </Popup>
                   </Marker>
