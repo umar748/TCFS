@@ -199,7 +199,10 @@ export default function User() {
         if (query && query.trim().length > 0) params.set('q', query.trim());
         if (month !== 'All') params.set('startMonth', month);
         if (duration && duration > 0) params.set('maxDays', String(duration));
-        const res = await fetch(`/api/trips/discover?${params.toString()}`);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        const res = await fetch(`/api/trips/discover?${params.toString()}`, { signal: controller.signal });
+        clearTimeout(timeoutId);
         const data = await res.json().catch(() => null);
         if (!res.ok || !data?.success) {
           setError(data?.message || `Failed (${res.status})`);
@@ -209,7 +212,11 @@ export default function User() {
         // backend now returns start_date/end_date fields; map them to frontend naming if needed
         setItems(data.items || []);
       } catch (e) {
-        setError(e?.message || 'Network error');
+        if (e.name === 'AbortError') {
+          setError('Request timed out. Please try again.');
+        } else {
+          setError(e?.message || 'Network error');
+        }
         setItems([]);
       } finally {
         setLoading(false);
@@ -221,7 +228,10 @@ export default function User() {
       try {
         const params = new URLSearchParams();
         if (query && query.trim().length > 0) params.set('q', query.trim());
-        const res = await fetch(`/api/users/search?${params.toString()}`);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        const res = await fetch(`/api/users/search?${params.toString()}`, { signal: controller.signal });
+        clearTimeout(timeoutId);
         const data = await res.json().catch(() => null);
         if (!res.ok || !data?.success) {
           setError(data?.message || `Failed (${res.status})`);
@@ -239,7 +249,11 @@ export default function User() {
           travelPlans: u.travelPlans || []
         })));
       } catch (e) {
-        setError(e?.message || 'Network error');
+        if (e.name === 'AbortError') {
+          setError('Request timed out. Please try again.');
+        } else {
+          setError(e?.message || 'Network error');
+        }
         setItems([]);
       } finally {
         setLoading(false);
