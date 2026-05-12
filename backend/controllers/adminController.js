@@ -18,10 +18,9 @@ export const getStats = async (req, res) => {
     const blockedUsers = await User.countDocuments({ isBlocked: true });
 
     // Monthly registrations (last 6 months)
-    const since = new Date();
-    since.setMonth(since.getMonth() - 6);
+    const firstMonth = new Date(now.getFullYear(), now.getMonth() - 5, 1);
     const monthly = await User.aggregate([
-      { $match: { createdAt: { $gte: since } } },
+      { $match: { createdAt: { $gte: firstMonth } } },
       { $group: { _id: { y: { $year: "$createdAt" }, m: { $month: "$createdAt" } }, count: { $sum: 1 } } },
       { $sort: { "_id.y": 1, "_id.m": 1 } }
     ]);

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getStats } from '../../services/admin';
 import TopNav from '../../components/layout/TopNav';
 import Sidebar from '../../components/layout/Sidebar';
+import ChartCard, { SimpleBarChart } from '../../components/cards/ChartCard';
 import { 
   FaUsers, FaPlane, FaFlag, FaUserSlash, FaChartLine, FaMapMarkerAlt,
   FaArrowUp, FaArrowDown, FaCalendarCheck
@@ -131,39 +132,23 @@ export default function AdminDashboard() {
 
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
             {/* Monthly Registrations Chart */}
-            <div className="xl:col-span-2 bg-gray-800 border border-gray-700 rounded-2xl p-8 animate-slide-up delay-200 hover:border-gray-600 transition-colors group">
-              <div className="flex justify-between items-center mb-8">
-                <h3 className="text-xl font-bold flex items-center gap-3">
-                  <FaChartLine className="text-blue-400 group-hover:scale-110 transition-transform" />
-                  Growth Trajectory
-                </h3>
-                <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Last 6 Months</span>
-              </div>
-              <div className="h-64 flex items-end justify-between gap-4 px-4">
+            <div className="xl:col-span-2 animate-slide-up delay-200">
+              <ChartCard title="Growth Trajectory" subtitle="Last 6 months of traveler registrations">
                 {stats.monthlyRegistrations.length > 0 ? (
-                  stats.monthlyRegistrations.map((m, idx) => {
-                    const maxCount = Math.max(...stats.monthlyRegistrations.map(x => x.count), 1);
-                    const height = (m.count / maxCount) * 100;
-                    return (
-                      <div key={idx} className="flex-1 flex flex-col items-center gap-3 group/bar">
-                        <div className="w-full bg-blue-500/10 rounded-t-lg relative group-hover/bar:bg-blue-500/30 transition-all duration-500 cursor-pointer" style={{ height: `${height}%` }}>
-                          <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-gray-700 text-white text-[10px] font-black px-3 py-1.5 rounded-lg opacity-0 group-hover/bar:opacity-100 group-hover/bar:-translate-y-1 transition-all shadow-xl whitespace-nowrap z-30">
-                            {m.count} Signups
-                          </div>
-                          <div className="absolute inset-0 bg-blue-400 opacity-0 group-hover/bar:opacity-20 transition-opacity rounded-t-lg"></div>
-                        </div>
-                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-tighter group-hover/bar:text-blue-400 transition-colors">
-                          {new Date(0, m.month - 1).toLocaleString('default', { month: 'short' })}
-                        </span>
-                      </div>
-                    );
-                  })
+                  <SimpleBarChart
+                    data={stats.monthlyRegistrations.map(m => ({
+                      label: m.name,
+                      value: m.count,
+                      color: 'bg-blue-500'
+                    }))}
+                    unit="signups"
+                  />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-gray-500 text-sm italic">
-                    Insufficient data for registration growth
+                  <div className="h-64 flex items-center justify-center text-gray-500 text-sm italic">
+                    Insufficient registration data available from the database.
                   </div>
                 )}
-              </div>
+              </ChartCard>
             </div>
 
             {/* Popular Destinations */}

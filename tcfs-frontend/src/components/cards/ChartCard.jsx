@@ -17,7 +17,7 @@ export default function ChartCard({ title, subtitle, children }) {
 }
 
 // Simple Bar Chart Component
-export function SimpleBarChart({ data = [] }) {
+export function SimpleBarChart({ data = [], unit = 'items' }) {
   const defaultData = [
     { label: 'Jan', value: 45, color: 'bg-tcfs-500' },
     { label: 'Feb', value: 52, color: 'bg-tcfs-500' },
@@ -34,7 +34,7 @@ export function SimpleBarChart({ data = [] }) {
   ];
 
   const chartData = data.length > 0 ? data : defaultData;
-  const maxValue = Math.max(...chartData.map(d => d.value));
+  const maxValue = Math.max(...chartData.map(d => d.value), 1);
 
   return (
     <div className="space-y-3">
@@ -45,7 +45,7 @@ export function SimpleBarChart({ data = [] }) {
               <div
                 className={`${item.color} w-full rounded-t transition-all duration-300 hover:opacity-80`}
                 style={{ height: `${(item.value / maxValue) * 100}%` }}
-                title={`${item.label}: ${item.value} kg CO₂`}
+                title={`${item.label}: ${item.value} ${unit}`}
               />
             </div>
             <span className="text-xs text-neutral-600 font-medium">{item.label}</span>
@@ -55,7 +55,7 @@ export function SimpleBarChart({ data = [] }) {
       <div className="flex items-center justify-center gap-4 pt-2 border-t border-neutral-100">
         <div className="flex items-center gap-2">
           <div className="w-3 h-3 bg-tcfs-500 rounded"></div>
-          <span className="text-xs text-neutral-600">Monthly Emissions (kg CO₂)</span>
+          <span className="text-xs text-neutral-600">Monthly registrations ({unit})</span>
         </div>
       </div>
     </div>
