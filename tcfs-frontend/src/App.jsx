@@ -67,7 +67,7 @@ export default function App() {
         <Route path="/feed" element={<FeedPage />} />
         <Route path="/ai-assistant" element={<AIChat />} />
         <Route path="/requests" element={<RequestsPage />} />
-        <Route path="/explore-destinations" element={<RequireRole role="user"><ExploreDestinations /></RequireRole>} />
+        <Route path="/explore-destinations" element={<ExploreDestinations />} />
 
         {/* Dashboard Routes */}
         <Route path="/dashboard" element={<DashboardRouter />} />
