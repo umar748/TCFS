@@ -782,7 +782,7 @@ const ExploreDestinations = () => {
         </div>
       </div>
 
-      {showMap ? (
+      {/* {showMap ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-6">
           <div className="w-full max-w-6xl overflow-hidden rounded-3xl border border-[#334155] bg-[#1e293b] shadow-2xl">
             <div className="flex items-center justify-between border-b border-[#334155] px-6 py-4">
@@ -898,7 +898,7 @@ const ExploreDestinations = () => {
             </div>
           </div>
         </div>
-      ) : null}
+      ) : null} */}
     </div>
   );
 };
